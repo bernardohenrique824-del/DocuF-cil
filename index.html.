@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DocuFácil | Serviços Públicos</title>
+<style>
+:root{--navy:#153d67;--blue:#2563eb;--bg:#f3f6fb;--ink:#172b45}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:var(--navy);color:white;padding:22px max(5%,calc((100% - 1050px)/2))}
+header strong{font-size:25px}
+header p{margin-bottom:0;color:#dbeafe}
+main{max-width:1050px;margin:28px auto;padding:0 18px}
+.hero{background:white;padding:30px;border-radius:18px}
+h1{font-size:clamp(28px,5vw,42px);margin:0 0 12px}
+p{line-height:1.6}
+input,textarea,button{width:100%;padding:13px;border:1px solid #ccd6e3;border-radius:9px;font:inherit}
+button{background:var(--blue);color:white;border:0;cursor:pointer;font-weight:bold}
+button:hover{opacity:.9}
+.search{margin-top:15px}
+h2{margin-top:30px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.card,.panel{background:white;border:1px solid #e0e7f0;border-radius:14px;padding:20px}
+.card h3{margin:12px 0}
+.card p,.muted{color:#627189}
+.tag{font-size:12px;color:#194c9b;background:#e8f0ff;padding:5px 9px;border-radius:20px}
+.card button{margin-top:12px}
+.panel{margin-top:22px}
+form{display:grid;gap:13px}
+label{display:grid;gap:7px;font-weight:bold}
+a{color:var(--blue)}
+.result{padding:14px;border-radius:9px;background:#e6f8ed;margin-top:14px;overflow-wrap:anywhere}
+footer{text-align:center;padding:30px;color:#68778a;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+<strong>▣ DocuFácil</strong>
+<p>Serviços públicos simplificados para todos.</p>
+</header>
+<main>
+<section class="hero">
+<h1>Seus documentos, sem complicação.</h1>
+<p>Encontre orientações sobre documentos públicos e acompanhe seus registros em um só lugar.</p>
+<input id="busca" class="search" placeholder="Busque CPF, identidade, certidão..." aria-label="Buscar serviços">
+</section>
+
+<h2>Encontre seu serviço</h2>
+<div class="grid" id="catalogo"></div>
+
+<section class="panel" id="areaPedido" hidden>
+<h2 id="tituloPedido">Registrar acompanhamento</h2>
+<p id="descricaoPedido"></p>
+<form id="formPedido">
+<label>Nome completo
+<input id="nome" required maxlength="100" placeholder="Digite seu nome">
+</label>
+<label>E-mail
+<input id="email" type="email" required maxlength="150" placeholder="voce@exemplo.com">
+</label>
+<label>Observações (opcional)
+<textarea id="observacoes" rows="3" maxlength="500" placeholder="Não informe senhas ou dados sensíveis"></textarea>
+</label>
+<p class="muted">Este registro é salvo apenas neste navegador. Não envia pedidos aos órgãos públicos.</p>
+<button type="submit">Gerar protocolo de acompanhamento</button>
+<button type="button" id="cancelar" style="background:#e7edf5;color:#153d67">Cancelar</button>
+</form>
+<div id="resultado" class="result" hidden></div>
+</section>
+
+<section class="panel">
+<h2>Acompanhar protocolo</h2>
+<p>Consulte um registro criado neste mesmo navegador.</p>
+<form id="formConsulta">
+<label>Número do protocolo
+<input id="protocolo" required placeholder="Ex.: DF-12345678">
+</label>
+<button type="submit">Consultar</button>
+</form>
+<div id="consulta"></div>
+</section>
+
+<section class="panel">
+<h2>Canais oficiais</h2>
+<p>Para solicitar documentos reais, confirme os requisitos e conclua o processo nos canais oficiais.</p>
+<ul>
+<li><a href="https://www.gov.br/" target="_blank" rel="noopener">Portal Gov.br</a></li>
+<li><a href="https://www.gov.br/receitafederal/pt-br" target="_blank" rel="noopener">Receita Federal</a></li>
+<li><a href="https://www.tse.jus.br/" target="_blank" rel="noopener">Tribunal Superior Eleitoral</a></li>
+</ul>
+</section>
+<p class="muted">DocuFácil é um projeto independente e não representa um órgão governamental. A disponibilidade dos serviços deve ser confirmada nos canais oficiais.</p>
+</main>
+<footer>DocuFácil © 2026 · Acesso simplificado à informação pública</footer>
+
+<script>
+const servicos=[
+{id:"cin",nome:"Carteira de Identidade (CIN)",categoria:"Identificação",descricao:"Consulte orientações para obter a nova Carteira de Identidade Nacional.",url:"https://www.gov.br/"},
+{id:"cpf",nome:"CPF",categoria:"Fiscal",descricao:"Encontre serviços e orientações sobre cadastro e CPF.",url:"https://www.gov.br/receitafederal/pt-br"},
+{id:"certidao",nome:"Certidões civis",categoria:"Certidões",descricao:"Consulte orientações sobre certidões de nascimento, casamento e óbito.",url:"https://www.gov.br/"},
+{id:"eleitor",nome:"Título de eleitor",categoria:"Eleitoral",descricao:"Consulte os serviços oficiais da Justiça Eleitoral.",url:"https://www.tse.jus.br/"},
+{id:"trabalho",nome:"Carteira de Trabalho Digital",categoria:"Trabalho",descricao:"Acesse informações e serviços de trabalho.",url:"https://www.gov.br/pt-br/temas/carteira-de-trabalho-digital"},
+{id:"transito",nome:"CNH e veículos",categoria:"Trânsito",descricao:"Encontre orientações sobre habilitação e serviços de trânsito.",url:"https://www.gov.br/"}
+];
+const el=id=>document.getElementById(id);
+let selecionado=null;
+function registros(){
+ try{return JSON.parse(localStorage.getItem("docufacil_registros")||"[]")}catch(e){return []}
+}
+function renderizar(){
+ const q=el("busca").value.toLocaleLowerCase("pt-BR");
+ const catalogo=el("catalogo");catalogo.replaceChildren();
+ servicos.filter(s=>(s.nome+" "+s.categoria+" "+s.descricao).toLocaleLowerCase("pt-BR").includes(q)).forEach(s=>{
+  const card=document.createElement("article");card.className="card";
+  const tag=document.createElement("span");tag.className="tag";tag.textContent=s.categoria;
+  const h=document.createElement("h3");h.textContent=s.nome;
+  const p=document.createElement("p");p.textContent=s.descricao;
+  const a=document.createElement("a");a.href=s.url;a.target="_blank";a.rel="noopener";a.textContent="Consultar canal oficial";
+  const b=document.createElement("button");b.textContent="Registrar acompanhamento";
+  b.onclick=()=>abrirPedido(s.id);
+  card.append(tag,h,p,a,b);catalogo.append(card);
+ });
+ if(!catalogo.children.length)catalogo.textContent="Nenhum serviço encontrado.";
+}
+function abrirPedido(id){
+ selecionado=servicos.find(s=>s.id===id);
+ el("tituloPedido").textContent="Acompanhar: "+selecionado.nome;
+ el("descricaoPedido").textContent=selecionado.descricao;
+ el("areaPedido").hidden=false;el("resultado").hidden=true;
+ el("areaPedido").scrollIntoView({behavior:"smooth"});
+}
+el("busca").addEventListener("input",renderizar);
+el("cancelar").onclick=()=>el("areaPedido").hidden=true;
+el("formPedido").onsubmit=e=>{
+ e.preventDefault();
+ const protocolo="DF-"+Date.now().toString().slice(-8);
+ const item={protocolo,servico:selecionado.nome,nome:el("nome").value.trim(),email:el("email").value.trim(),data:new Date().toLocaleString("pt-BR"),status:"Registrado neste navegador"};
+ const lista=registros();lista.push(item);
+ try{localStorage.setItem("docufacil_registros",JSON.stringify(lista))}
+ catch(e){alert("Não foi possível salvar o registro neste navegador.");return}
+ el("resultado").hidden=false;
+ el("resultado").textContent="Protocolo "+protocolo+" criado. Guarde esse número. O pedido não foi enviado ao órgão público.";
+ el("protocolo").value=protocolo;
+ el("formPedido").reset();
+};
+el("formConsulta").onsubmit=e=>{
+ e.preventDefault();
+ const p=el("protocolo").value.trim().toUpperCase();
+ const item=registros().find(r=>r.protocolo.toUpperCase()===p);
+ const out=el("consulta");out.replaceChildren();
+ const box=document.createElement("div");box.className="result";
+ if(!item){box.textContent="Protocolo não encontrado neste navegador. Verifique o número e o dispositivo utilizado."}
+ else{
+  const h=document.createElement("strong");h.textContent=item.servico;
+  const d=document.createElement("p");d.textContent="Protocolo: "+item.protocolo+" · Data: "+item.data;
+  const s=document.createElement("p");s.textContent="Status: "+item.status;
+  const aviso=document.createElement("p");aviso.textContent="Registro demonstrativo, sem consulta ao sistema oficial.";
+  box.append(h,d,s,aviso);
+ }
+ out.append(box);
+};
+renderizar();
+</script>
+</body>
+</html>
